@@ -1,5 +1,6 @@
 import express from "express";
 import { scooters } from "./data/scooters";
+import { books } from "./data/books";
 import { Scooter } from "./models/Scooter";
 
 const app = express();
@@ -31,6 +32,11 @@ app.get("/scooters", (req, res) => {
     return res.json(result);
   }
   res.json(scts);
+});
+
+app.patch("/scooters/:id", (req, res) => {
+  const lock = req.body.lock;
+  const scooterId = req.params.id;
 });
 
 app.listen(3000, () => console.log("Server is running"));
