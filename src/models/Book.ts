@@ -1,4 +1,5 @@
 export type Book = {
+  id: string;
   scooterId: string;
   startLat: number;
   startLong: number;
@@ -6,5 +7,6 @@ export type Book = {
   endLat?: number;
   endLong?: number;
   endDate?: number;
+  distance?: number;
   pay?: number; // (endDate - startDate) * cost
 };
