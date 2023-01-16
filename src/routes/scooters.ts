@@ -4,6 +4,7 @@ import { Scooter } from "../models/Scooter";
 import { Book } from "../models/Book";
 import { books } from "../data/books";
 import { v4 as uuidv4 } from "uuid";
+import { body, query, validationResult } from "express-validator";
 
 export const router = Router();
 
@@ -13,28 +14,53 @@ function getDistance(x1: number, y1: number, x2: number, y2: number) {
   return Math.sqrt(x * x + y * y);
 }
 
-router.get("/", (req, res) => {
-  let scts: (Scooter & { distance?: number })[] = [...scooters];
-  const { lat, long, maxDistance } = req.query;
-  if (lat && long && maxDistance) {
-    scts = scts.map((scooter) => {
-      return {
-        ...scooter,
-        distance: getDistance(
-          scooter.lat,
-          scooter.long,
-          Number(lat),
-          Number(long)
-        ),
-      };
+const checkLat = (where: typeof body) => {
+  return where("lat")
+    .notEmpty()
+    .toFloat()
+    .custom((value) => {
+      if (isFinite(value) && Math.abs(value) <= 90) {
+        return true;
+      } else throw new Error("Lat is not valid value");
     });
-    const result: (Scooter & { distance?: number })[] = scts
-      .filter(({ distance }) => distance! < Number(maxDistance))
-      .sort((a, b) => (a.distance! > b.distance! ? 1 : -1));
-    return res.json(result);
+};
+const checkLong = (where: typeof body) => {
+  return where("long")
+    .notEmpty()
+    .toFloat()
+    .custom((value) => {
+      if (isFinite(value) && Math.abs(value) <= 180) {
+        return true;
+      } else throw new Error("Long is not valid value");
+    });
+};
+
+router.get(
+  "/",
+  checkLat(query),
+  checkLong(query),
+  query("maxDistance").notEmpty().toInt(),
+  (req, res) => {
+    let scts: (Scooter & { distance?: number })[] = [...scooters];
+    const { lat, long, maxDistance } = req.query as Record<
+      "lat" | "long" | "maxDistance",
+      number
+    >;
+    if (lat && long && maxDistance) {
+      scts = scts.map((scooter) => {
+        return {
+          ...scooter,
+          distance: getDistance(scooter.lat, scooter.long, lat, long),
+        };
+      });
+      const result: (Scooter & { distance?: number })[] = scts
+        .filter(({ distance }) => distance! < maxDistance)
+        .sort((a, b) => (a.distance! > b.distance! ? 1 : -1));
+      return res.json(result);
+    }
+    res.json(scts);
   }
-  res.json(scts);
-});
+);
 
 router.patch("/:id", (req, res) => {
   const unlock = req.body.unlock; // sblocca
@@ -78,4 +104,18 @@ router.patch("/:id", (req, res) => {
       book,
     });
   }
+});
+
+router.post("/", checkLat(body), checkLong(body), (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+  const scooter: Scooter = {
+    id: uuidv4(),
+    lat: req.body.lat,
+    long: req.body.long,
+  };
+  scooters.push(scooter);
+  res.json(scooter);
 });
