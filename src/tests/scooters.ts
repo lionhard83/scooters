@@ -1,4 +1,3 @@
-// See https://www.chaijs.com for how to use Chai.
 import { assert } from "chai";
 
 describe("Scooters", () => {
