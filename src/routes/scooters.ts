@@ -5,6 +5,7 @@ import { Book } from "../models/Book";
 import { books } from "../data/books";
 import { v4 as uuidv4 } from "uuid";
 import { body, query, validationResult } from "express-validator";
+import { isAdmin } from "./auth";
 
 export const router = Router();
 
@@ -106,7 +107,7 @@ router.patch("/:id", (req, res) => {
   }
 });
 
-router.post("/", checkLat(body), checkLong(body), (req, res) => {
+router.post("/", isAdmin, checkLat(body), checkLong(body), (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.status(400).json({ errors: errors.array() });
